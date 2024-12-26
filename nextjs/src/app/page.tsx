@@ -1,101 +1,120 @@
-import Image from "next/image";
+'use client';
+import { SyntheticEvent, useEffect, useState } from 'react';
+import { Line } from './components/Line';
+import { fetchTx, Transaction } from './utils';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [txs, setTx] = useState<Transaction[]>([]);
+  const [filteredTx, setFilteredTx] = useState<Transaction[]>([]);
+  const [value, setValue] = useState(0);
+  const [error, setError] = useState('');
+  const [range, setRange] = useState<Array<Date | undefined>>([
+    undefined,
+    undefined,
+  ]);
+  const [transactionsSum, setTransactionsSum] = useState<Transaction[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const getTx = async () => {
+      const transactions: Transaction[] = await fetchTx;
+      setTx(transactions);
+    };
+
+    getTx();
+  }, []);
+
+  const handleTextInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(Number(e.target.value));
+  };
+
+  const handleCheck = () => {
+    if (value > 0) {
+      let foundValue = undefined;
+      let inspectingValue = undefined;
+      for (let i = 0; i < txs.length; i++) {
+        inspectingValue = txs[i];
+        foundValue = txs.find((tx) => tx.amount + txs[i].amount === value);
+      }
+      if (foundValue && inspectingValue) {
+        setTransactionsSum([foundValue, inspectingValue]);
+        setError('');
+      } else {
+        setError('No matching transactions found.');
+      }
+    }
+  };
+
+  const handleOnChangeStartDate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRange((prev) => [e.target.value, prev[1]]);
+    console.log(e.target.value);
+  };
+  const handleOnChangeEndDate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRange((prev) => [prev[0], e.target.value]);
+    console.log(e.target.value);
+  };
+
+  const handleFilterByDate = () => {
+    if (range[0] && range[1]) {
+      const filteredTx = txs.filter(
+        (tx) => tx.date >= new Date(range[0]) && tx.date <= new Date(range[1])
+      );
+      console.log({ filteredTx });
+      setFilteredTx(filteredTx);
+    }
+  };
+
+  return (
+    <div className='w-full px-6'>
+      <p>All Transactions</p>
+      {txs.map((tx) => {
+        return (
+          <Line date={tx.date} key={tx.id} id={tx.id} amount={tx.amount} />
+        );
+      })}
+      <div className='py-8 flex flex-col gap-2'>
+        <label>Enter Sum Amount: </label>
+        <br />
+        <input
+          type='number'
+          className='text-black'
+          onChange={handleTextInput}
+        />
+        <br />
+        <button className='p-8 border-white border-2' onClick={handleCheck}>
+          Check Transactions
+        </button>
+      </div>
+      {error && <p>{error}</p>}
+      <p className='text-white'>
+        {transactionsSum.map((tx) => {
+          return (
+            <Line date={tx.date} key={tx.id} id={tx.id} amount={tx.amount} />
+          );
+        })}
+      </p>
+      <div className='flex flex-col py-8'>
+        <p>Filter By Date</p>
+        <div>
+          <label>Start Date</label>
+          <input type='date' onChange={handleOnChangeStartDate} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div>
+          <label>End Date</label>
+          <input type='date' onChange={handleOnChangeEndDate} />
+        </div>
+      </div>
+      <button
+        className='p-8 border-white border-2'
+        onClick={handleFilterByDate}
+      >
+        Filter
+      </button>
+      <p>Results</p>
+      {filteredTx.map((tx) => {
+        return (
+          <Line date={tx.date} key={tx.id} id={tx.id} amount={tx.amount} />
+        );
+      })}
     </div>
   );
 }
